@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
-public class Enemy : MonoBehaviour
+public class Enymy : MonoBehaviour
 {
   #region public
 
@@ -14,6 +14,7 @@ public class Enemy : MonoBehaviour
     [SerializeField]  float attackDamag;
     [SerializeField]  float lookRadius = 10f;
     [SerializeField]  float AttackCooldavn = 2;
+    public Charakter charakter;
     
   #endregion
    
@@ -27,32 +28,27 @@ public class Enemy : MonoBehaviour
     private bool LookPlayer;
     private bool TargetAngry;
     
+    
    #endregion
     void Start()
-    {
-        currentHealth = maxhealt;
+    {   currentHealth = maxhealt;
         target = PlayerManager.instance.Player.transform;
         agent = GetComponent<NavMeshAgent>();
         timAt = AttackCooldavn;
-        healBar.SetHealt(maxhealt);
-
-    }
+        healBar.SetHealt(maxhealt);        
+        }
     private void Awake() {
-        StopAtack = true;
-    }
-    private void Update() {
-        
+        StopAtack = true;}
+    private void Update() {    
         float distance = Vector3.Distance(target.position, transform.position);
         Attack();
         if (distance > lookRadius)
-        {
-            LookPlayer = false;
+        {   LookPlayer = false;
             if(TargetAngry == true){
-                 StartCoroutine("Angry");
-            }}
+            StartCoroutine("Angry");}}
 
-         if (distance<= lookRadius && agent.enabled == true && StopAtack == true)
-        {   agent.SetDestination(target.position);
+         if (distance<= lookRadius && agent.enabled == true && StopAtack == true){
+            agent.SetDestination(target.position);
             FaceTarget();
             LookPlayer = true;}    
 
@@ -63,21 +59,16 @@ public class Enemy : MonoBehaviour
                 animator.SetBool("Walk", true);
                 animator.SetBool("Attack", false);
             }
-            else{animator.SetBool("Walk", false);}
-    }
-
+            else{animator.SetBool("Walk", false);}}
     public void AnimationStopMove(){
-        StopAtack = false;
-    } 
+        StopAtack = false;} 
      public void AnimationSartMove(){
-        StopAtack = true;
-    } 
+        StopAtack = true;} 
 
     private void FaceTarget(){
         Vector3 direction = (target.position - transform.position).normalized;
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime);
-    }
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime);}
      private void Attack(){
         TrigerAtack = false;
         Collider[] hitEnemis = Physics.OverlapSphere(attackPoint.position, attackRange, Player);
@@ -86,51 +77,35 @@ public class Enemy : MonoBehaviour
         if(AttackCooldavn <=0.01){
         animator.SetBool("Attack", true);
         TrigerAtack = true;
-        AttackCooldavn = timAt;
-        }        
-        }
-    }
+        AttackCooldavn = timAt;}}}
     public void Damage(){
         if (TrigerAtack == true)
-        {
-            FindObjectOfType<Charakter>().TakeDamage(attackDamag);     
-        }
-    }
-
+        {charakter.TakeDamage(attackDamag);}}
     public void TakeDamage(float damage){
-
         currentHealth -= damage;
         healBar.SetHealt(currentHealth);
         if(damage >= 100 || currentHealth<= maxhealt*0.1){    
         animator.SetTrigger("Hurt");}
-
         if(currentHealth <=0){
             Die();
         }
         if (LookPlayer == false)
         {
             TargetAngry = true;
-        }
-    }
+        }}
     private IEnumerator Angry(){
      agent.SetDestination(target.position);
-            FaceTarget();
+     FaceTarget();
      yield return new WaitForSeconds(15f);
-     TargetAngry = false;
-    }
-
+     TargetAngry = false;}
     void Die(){
         Debug.Log("Enemy died!");
         animator.SetBool("isDead", true);
         GetComponent<Collider>().enabled = false;
-        GetComponent<NavMeshAgent>().enabled = false;
-    }    
-    void OnDrawGizmosSelected() {
-        Gizmos.color = Color.red;
+        agent.enabled = false;}    
+    void OnDrawGizmosSelected(){
+    Gizmos.color = Color.red;
     Gizmos.DrawWireSphere(transform.position, lookRadius);
      if(attackPoint==null)
      return;
-    Gizmos.DrawWireSphere(attackPoint.position, attackRange);
-    }
-
-}
+    Gizmos.DrawWireSphere(attackPoint.position, attackRange);}}
