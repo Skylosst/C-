@@ -1,0 +1,136 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.AI;
+public class Enemy : MonoBehaviour
+{
+  #region public
+
+    [SerializeField] Animator animator;
+    [SerializeField]  HealBar healBar;
+    [SerializeField]  float maxhealt = 100;
+    [SerializeField]  Transform attackPoint;
+    [SerializeField]  LayerMask Player;
+    [SerializeField]  float attackRange = 0.5f;
+    [SerializeField]  float attackDamag;
+    [SerializeField]  float lookRadius = 10f;
+    [SerializeField]  float AttackCooldavn = 2;
+    
+  #endregion
+   
+  #region private
+    private float currentHealth;
+    private Transform target;
+    private NavMeshAgent agent;    
+    private float timAt;
+    private bool TrigerAtack;
+    private bool StopAtack;
+    private bool LookPlayer;
+    private bool TargetAngry;
+    
+   #endregion
+    void Start()
+    {
+        currentHealth = maxhealt;
+        target = PlayerManager.instance.Player.transform;
+        agent = GetComponent<NavMeshAgent>();
+        timAt = AttackCooldavn;
+        healBar.SetHealt(maxhealt);
+
+    }
+    private void Awake() {
+        StopAtack = true;
+    }
+    private void Update() {
+        
+        float distance = Vector3.Distance(target.position, transform.position);
+        Attack();
+        if (distance > lookRadius)
+        {
+            LookPlayer = false;
+            if(TargetAngry == true){
+                 StartCoroutine("Angry");
+            }}
+
+         if (distance<= lookRadius && agent.enabled == true && StopAtack == true)
+        {   agent.SetDestination(target.position);
+            FaceTarget();
+            LookPlayer = true;}    
+
+        if(agent.enabled == false){
+             Destroy(this.gameObject, 10f);
+        }
+        if(agent.isOnNavMesh && agent.remainingDistance > agent.stoppingDistance){
+                animator.SetBool("Walk", true);
+                animator.SetBool("Attack", false);
+            }
+            else{animator.SetBool("Walk", false);}
+    }
+
+    public void AnimationStopMove(){
+        StopAtack = false;
+    } 
+     public void AnimationSartMove(){
+        StopAtack = true;
+    } 
+
+    private void FaceTarget(){
+        Vector3 direction = (target.position - transform.position).normalized;
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime);
+    }
+     private void Attack(){
+        TrigerAtack = false;
+        Collider[] hitEnemis = Physics.OverlapSphere(attackPoint.position, attackRange, Player);
+        foreach(Collider Player in hitEnemis){
+        AttackCooldavn -= Time.deltaTime;
+        if(AttackCooldavn <=0.01){
+        animator.SetBool("Attack", true);
+        TrigerAtack = true;
+        AttackCooldavn = timAt;
+        }        
+        }
+    }
+    public void Damage(){
+        if (TrigerAtack == true)
+        {
+            FindObjectOfType<Charakter>().TakeDamage(attackDamag);     
+        }
+    }
+
+    public void TakeDamage(float damage){
+
+        currentHealth -= damage;
+        healBar.SetHealt(currentHealth);
+        if(damage >= 100 || currentHealth<= maxhealt*0.1){    
+        animator.SetTrigger("Hurt");}
+
+        if(currentHealth <=0){
+            Die();
+        }
+        if (LookPlayer == false)
+        {
+            TargetAngry = true;
+        }
+    }
+    private IEnumerator Angry(){
+     agent.SetDestination(target.position);
+            FaceTarget();
+     yield return new WaitForSeconds(15f);
+     TargetAngry = false;
+    }
+
+    void Die(){
+        Debug.Log("Enemy died!");
+        animator.SetBool("isDead", true);
+        GetComponent<Collider>().enabled = false;
+        GetComponent<NavMeshAgent>().enabled = false;
+    }    
+    void OnDrawGizmosSelected() {
+        Gizmos.color = Color.red;
+    Gizmos.DrawWireSphere(transform.position, lookRadius);
+     if(attackPoint==null)
+     return;
+    Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+    }
+
+}
